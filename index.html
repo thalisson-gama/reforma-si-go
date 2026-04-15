@@ -869,35 +869,6 @@
     }
 
     /* ============================================================
-       WHATSAPP FLUTUANTE
-    ============================================================ */
-    .whatsapp-float {
-      position: fixed;
-      bottom: 28px;
-      right: 28px;
-      width: 60px;
-      height: 60px;
-      background: #25D366;
-      border-radius: 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      box-shadow: 0 6px 24px rgba(37,211,102,0.4);
-      z-index: 9999;
-      transition: transform 0.3s ease, box-shadow 0.3s ease;
-      animation: pulse-wa 2s infinite;
-    }
-    .whatsapp-float:hover {
-      transform: scale(1.1);
-      box-shadow: 0 8px 32px rgba(37,211,102,0.55);
-    }
-    .whatsapp-float svg { width: 32px; height: 32px; fill: white; }
-    @keyframes pulse-wa {
-      0%, 100% { box-shadow: 0 6px 24px rgba(37,211,102,0.4); }
-      50% { box-shadow: 0 6px 32px rgba(37,211,102,0.65); }
-    }
-
-    /* ============================================================
        BARRA DE PROVA SOCIAL
     ============================================================ */
     .social-proof {
@@ -1048,7 +1019,6 @@
     .mobile-cta .btn { width: 100%; text-align: center; padding: 16px; font-size: 13px; }
     @media (max-width: 900px) {
       .mobile-cta { display: block; }
-      .whatsapp-float { bottom: 88px; }
     }
   </style>
 </head>
@@ -1691,16 +1661,39 @@
       submitBtn.textContent = 'Enviando...';
       submitBtn.disabled = true;
 
+      // Telefone: apenas dígitos, sem código do país
+      const whatsappDigits = document.getElementById('whatsapp').value.replace(/\D/g, '');
+
+      // UTMs (se existirem na URL)
+      const qs = new URLSearchParams(window.location.search);
+      const now = new Date();
+      const dd = String(now.getDate()).padStart(2, '0');
+      const mm = String(now.getMonth() + 1).padStart(2, '0');
+      const yyyy = now.getFullYear();
+      const hh = String(now.getHours()).padStart(2, '0');
+      const mi = String(now.getMinutes()).padStart(2, '0');
+
       const payload = {
-        nome: document.getElementById('nome').value.trim(),
-        email: document.getElementById('email').value.trim(),
-        whatsapp: document.getElementById('whatsapp').value.trim(),
-        terreno: document.getElementById('terreno').value,
-        projeto: document.getElementById('projeto').value,
-        cidade: document.getElementById('cidade').value.trim(),
-        renda: document.getElementById('renda').value.trim(),
-        enviado_em: new Date().toISOString(),
-        pagina: window.location.href
+        // Campos padrão do AtenderBem
+        Nome: document.getElementById('nome').value.trim(),
+        Email: document.getElementById('email').value.trim(),
+        WhatsApp: whatsappDigits,
+        // Campos customizados (rótulos precisam estar criados no CRM)
+        tipo_imovel: document.getElementById('terreno').value,
+        projeto_arquitetonico: document.getElementById('projeto').value,
+        bairro: document.getElementById('cidade').value.trim(),
+        investimento: document.getElementById('renda').value.trim(),
+        // Metadados da origem
+        Nome_do_site: 'Si.Go Engenharia',
+        Nome_da_pagina: document.title,
+        URL_da_pagina: window.location.href,
+        Data: `${dd}/${mm}/${yyyy}`,
+        Horario: `${hh}:${mi}`,
+        utm_source: qs.get('utm_source') || '',
+        utm_medium: qs.get('utm_medium') || '',
+        utm_campaign: qs.get('utm_campaign') || '',
+        utm_term: qs.get('utm_term') || '',
+        utm_content: qs.get('utm_content') || ''
       };
 
       fetch(WEBHOOK_URL, {
@@ -1709,12 +1702,14 @@
         body: JSON.stringify(payload)
       })
       .then(res => {
-        if (!res.ok) throw new Error('Erro no envio');
+        if (!res.ok) throw new Error('HTTP ' + res.status);
         showSuccess();
       })
-      .catch(() => {
-        console.warn('Webhook falhou — exibindo sucesso mesmo assim.');
-        showSuccess();
+      .catch(err => {
+        console.error('Webhook falhou:', err);
+        submitBtn.textContent = originalText;
+        submitBtn.disabled = false;
+        alert('Não foi possível enviar no momento. Por favor, tente novamente em instantes ou fale conosco pelo WhatsApp.');
       });
 
       function showSuccess() {
@@ -1878,11 +1873,6 @@
     })();
 
   </script>
-
-  <!-- WhatsApp Flutuante -->
-  <a href="https://wa.me/5561982399000?text=Ol%C3%A1%2C%20vim%20pelo%20site%20e%20gostaria%20de%20saber%20mais%20sobre%20reformas%20com%20a%20Si.Go." class="whatsapp-float" target="_blank" rel="noopener" aria-label="Falar pelo WhatsApp">
-    <svg viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg"><path d="M16.004 0h-.008C7.174 0 .002 7.174.002 16.002c0 3.502 1.14 6.742 3.07 9.37L1.06 31.22l6.076-1.952a15.93 15.93 0 0 0 8.868 2.676C24.83 31.944 32 24.77 32 16.002 32 7.174 24.83 0 16.004 0zm9.536 22.61c-.398 1.122-2.328 2.146-3.21 2.216-.804.064-1.82.092-2.938-.184a26.7 26.7 0 0 1-2.66-.986c-4.68-2.02-7.734-6.762-7.968-7.076-.234-.312-1.908-2.54-1.908-4.844s1.206-3.436 1.636-3.906c.43-.47.938-.588 1.252-.588.312 0 .626.002.898.016.288.016.676-.11 1.058.806.398.954 1.35 3.296 1.468 3.538.118.234.196.508.038.82-.156.312-.234.508-.468.782-.234.274-.492.612-.702.822-.234.234-.478.488-.206.958s1.21 2 2.596 3.24c1.782 1.59 3.286 2.084 3.754 2.318.468.234.742.196 1.014-.118.274-.312 1.174-1.37 1.488-1.84.312-.47.626-.39 1.058-.234.43.156 2.766 1.304 3.24 1.542.468.234.782.352.898.548.118.196.118 1.136-.28 2.258z"/></svg>
-  </a>
 
   <!-- CTA Fixo Mobile -->
   <div class="mobile-cta" id="mobileCta">
